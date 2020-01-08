@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -8,115 +9,178 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-var permissions = []*ec2.IpPermission{
-	&ec2.IpPermission{
-		IpProtocol: aws.String("udp"),
-		FromPort:   aws.Int64(4222),
-		ToPort:     aws.Int64(4222),
-		IpRanges: []*ec2.IpRange{
-			&ec2.IpRange{
-				CidrIp:      aws.String("10.10.10.1/32"),
-				Description: aws.String("")},
-			&ec2.IpRange{
-				CidrIp:      aws.String("172.168.10.2/32"),
-				Description: aws.String("")},
-			&ec2.IpRange{
-				CidrIp:      aws.String("4.2.2.2/32"),
-				Description: aws.String("dns server")},
+var sourceGroup = []*ec2.SecurityGroup{
+	(&ec2.SecurityGroup{
+		Description: aws.String("source"),
+		GroupId:     aws.String("gs-001"),
+		GroupName:   aws.String("source group"),
+		OwnerId:     aws.String("owner"),
+		VpcId:       aws.String("wpc"),
+		IpPermissions: []*ec2.IpPermission{
+			(&ec2.IpPermission{
+				FromPort:   aws.Int64(22),
+				ToPort:     aws.Int64(22),
+				IpProtocol: aws.String("tcp"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("10.5.5.1/32"),
+					}),
+				},
+			}),
 		},
-	},
-	&ec2.IpPermission{
-		IpProtocol: aws.String("tcp"),
-		FromPort:   aws.Int64(22),
-		ToPort:     aws.Int64(22),
-		IpRanges: []*ec2.IpRange{
-			&ec2.IpRange{
-				CidrIp:      aws.String("8.8.8.8/32"),
-				Description: aws.String("")},
+		IpPermissionsEgress: []*ec2.IpPermission{
+			(&ec2.IpPermission{
+				IpProtocol: aws.String("-1"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("0.0.0.0/0"),
+					}),
+				},
+			}),
+			(&ec2.IpPermission{
+				IpProtocol: aws.String("-1"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("5.5.5.2/32"),
+					}),
+				},
+			}),
 		},
-	},
-	&ec2.IpPermission{
-		IpProtocol: aws.String("udp"),
-		FromPort:   aws.Int64(4222),
-		ToPort:     aws.Int64(4222),
-		IpRanges: []*ec2.IpRange{
-			&ec2.IpRange{
-				CidrIp:      aws.String("8.8.8.8/32"),
-				Description: aws.String("google dns server")},
-		},
-	},
-	&ec2.IpPermission{
-		IpProtocol: aws.String("udp"),
-		FromPort:   aws.Int64(4222),
-		ToPort:     aws.Int64(4222),
-		IpRanges: []*ec2.IpRange{
-			&ec2.IpRange{
-				CidrIp:      aws.String("8.8.8.8/32"),
-				Description: aws.String("")},
-		},
-	},
+	}),
 }
 
-func Test_Deduplicate_Permissions(t *testing.T) {
-
-	duplicateds := deduplicatePermissions(permissions)
-
-	if len(duplicateds) != 2 {
-		t.Errorf("permission not aggregated, got: %d, want: 2", len(duplicateds))
-	}
-
-	for _, iprange := range duplicateds {
-		if *iprange.FromPort == 4222 && *iprange.ToPort == 4222 && *iprange.IpProtocol == "udp" {
-			if len(iprange.IpRanges) != 4 {
-				t.Errorf("4222 port rules ip, got: %d, want: %d.", len(iprange.IpRanges), 4)
-			}
-		}
-	}
+var destinations = []*ec2.SecurityGroup{
+	(&ec2.SecurityGroup{
+		Description: aws.String("destination 2"),
+		GroupId:     aws.String("gs-002"),
+		GroupName:   aws.String("destination group 2"),
+		OwnerId:     aws.String("owner-id"),
+		VpcId:       aws.String("vpc-id"),
+		IpPermissions: []*ec2.IpPermission{
+			(&ec2.IpPermission{
+				FromPort:   aws.Int64(22),
+				ToPort:     aws.Int64(22),
+				IpProtocol: aws.String("tcp"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("10.5.5.1/32"),
+					}),
+				},
+			}),
+			(&ec2.IpPermission{
+				FromPort:   aws.Int64(22),
+				ToPort:     aws.Int64(22),
+				IpProtocol: aws.String("tcp"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("4.2.2.1/32"),
+					}),
+				},
+			}),
+		},
+	}),
+	(&ec2.SecurityGroup{
+		Description: aws.String("destination 3"),
+		GroupId:     aws.String("gs-003"),
+		GroupName:   aws.String("destination group 3"),
+		OwnerId:     aws.String("owner-id"),
+		VpcId:       aws.String("vpc-id"),
+		IpPermissions: []*ec2.IpPermission{
+			(&ec2.IpPermission{
+				FromPort:   aws.Int64(22),
+				ToPort:     aws.Int64(22),
+				IpProtocol: aws.String("tcp"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("8.8.8.8/32"),
+					}),
+				},
+			}),
+		},
+	}),
+	(&ec2.SecurityGroup{
+		Description: aws.String("destination 4"),
+		GroupId:     aws.String("gs-004"),
+		GroupName:   aws.String("destination group 4"),
+		OwnerId:     aws.String("owner-id"),
+		VpcId:       aws.String("vpc-id"),
+		IpPermissions: []*ec2.IpPermission{
+			(&ec2.IpPermission{
+				FromPort:   aws.Int64(8080),
+				ToPort:     aws.Int64(8080),
+				IpProtocol: aws.String("tcp"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("0.0.0.0/0"),
+					}),
+				},
+			}),
+		},
+		IpPermissionsEgress: []*ec2.IpPermission{
+			(&ec2.IpPermission{
+				IpProtocol: aws.String("-1"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("0.0.0.0/0"),
+					}),
+				},
+			}),
+		},
+	}),
 }
 
-func Test_Deduplicate_IpRanges(t *testing.T) {
-
-	ipranges := []*ec2.IpRange{
-		&ec2.IpRange{
-			CidrIp:      aws.String("10.10.10.1/32"),
-			Description: aws.String("")},
-		&ec2.IpRange{
-			CidrIp:      aws.String("10.10.10.1/32"),
-			Description: aws.String("")},
-		&ec2.IpRange{
-			CidrIp:      aws.String("4.2.2.2/32"),
-			Description: aws.String("dns server")},
-		&ec2.IpRange{
-			CidrIp:      aws.String("4.2.2.2/32"),
-			Description: aws.String("")},
-	}
-
-	duplicateds := deduplicateIpRanges(ipranges)
-
-	if len(duplicateds) != 2 {
-		t.Errorf("iprange not duplicated, got: %d, want %d", len(duplicateds), 2)
-	}
+var dstengress = []*ec2.SecurityGroup{
+	(&ec2.SecurityGroup{
+		Description: aws.String("destination 4"),
+		GroupId:     aws.String("gs-004"),
+		GroupName:   aws.String("destination group 4"),
+		OwnerId:     aws.String("owner-id"),
+		VpcId:       aws.String("vpc-id"),
+		IpPermissionsEgress: []*ec2.IpPermission{
+			(&ec2.IpPermission{
+				IpProtocol: aws.String("-1"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("0.0.0.0/0"),
+					}),
+				},
+			}),
+		},
+	}),
 }
 
-func Test_Deduplicate_Ipv6Ranges(t *testing.T) {
+func Test_WillbeAddedIngress(t *testing.T) {
 
-	ipv6ranges := []*ec2.Ipv6Range{
-		&ec2.Ipv6Range{
-			CidrIpv6:    aws.String("::/0"),
-			Description: aws.String("")},
-		&ec2.Ipv6Range{
-			CidrIpv6:    aws.String("::/0"),
-			Description: aws.String("")},
-		&ec2.Ipv6Range{
-			CidrIpv6: aws.String("::/128")},
-		&ec2.Ipv6Range{
-			CidrIpv6:    aws.String("::/128"),
-			Description: aws.String("")},
+	s := NewSync(sourceGroup[0], destinations)
+	ingress := s.willbeAddedIngress()
+
+	if len(ingress) != 2 {
+		t.Errorf("ingress rules cannot prepare. got: %d, want: %d", len(ingress), 2)
 	}
 
-	duplicateds := deduplicateIpv6Ranges(ipv6ranges)
+	fmt.Printf("%v", ingress)
+}
 
-	if len(duplicateds) != 2 {
-		t.Errorf("ipv6range not duplicated, got: %d, want %d", len(duplicateds), 2)
+func Test_WillbeAddedEgress(t *testing.T) {
+
+	s := NewSync(sourceGroup[0], dstengress)
+	egress := s.willbeAddedEgress()
+
+	if len(egress) != 1 {
+		t.Errorf("egress value not expected got: %d, want: %d", len(egress), 1)
 	}
+
+	fmt.Printf("%v", egress)
+}
+
+func Test_WillBeDeleteIngress(t *testing.T) {
+
+	s := NewSync(sourceGroup[0], destinations)
+	deleteds := s.willbeDeleteIngress()
+
+	if len(deleteds) > 0 {
+		t.Errorf("deleted value not expected got: %d, want: %d", len(deleteds), 1)
+	}
+
+	fmt.Printf("%v", deleteds)
 }

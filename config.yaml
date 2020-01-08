@@ -1,0 +1,23 @@
+
+interval: 1m
+sync_revoked: true
+sync_outbound: true
+sync_inbound: true
+
+source:
+  aws_access_key_id: 
+  aws_secret_access_key: 
+  region: eu-central-1
+  group_id: 
+
+destinations:
+  - 
+    aws_access_key_id: 
+    aws_secret_access_key: 
+    region: eu-central-1
+    group_ids: ["",""]
+  - 
+    aws_access_key_id: 
+    aws_secret_access_key: 
+    region: eu-central-1
+    group_ids: ["",""]

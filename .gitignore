@@ -8,3 +8,4 @@
 vendor/
 sgsync
 .vscode
+config_prod.yaml
