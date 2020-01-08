@@ -29,12 +29,10 @@ func (s *syncGroup) willbeAddedIngress() []*ec2.SecurityGroup {
 			exists, dstprm := s.isPermissionExists(src, dst.IpPermissions)
 
 			if !exists {
-
 				newperm := s.popperm(src)
 				newperm.SetIpRanges(src.IpRanges)
 				newperm.SetIpv6Ranges(src.Ipv6Ranges)
 				newsg.IpPermissions = append(newsg.IpPermissions, newperm)
-
 			} else {
 
 				updatesg := s.popsg(dst)
@@ -50,8 +48,8 @@ func (s *syncGroup) willbeAddedIngress() []*ec2.SecurityGroup {
 
 				//ipv6
 				for _, srcrange6 := range src.Ipv6Ranges {
-					rangexist, _ := s.isIpv6RangeExists(srcrange6, dstprm.Ipv6Ranges)
 
+					rangexist, _ := s.isIpv6RangeExists(srcrange6, dstprm.Ipv6Ranges)
 					if !rangexist {
 						updateperm.Ipv6Ranges = append(updateperm.Ipv6Ranges, srcrange6)
 					}
@@ -89,13 +87,10 @@ func (s *syncGroup) willbeAddedEgress() []*ec2.SecurityGroup {
 			exists, dstprm := s.isPermissionExists(src, dst.IpPermissionsEgress)
 
 			if !exists {
-
 				newperm := s.popperm(src)
 				newperm.SetIpRanges(src.IpRanges)
 				newperm.SetIpv6Ranges(src.Ipv6Ranges)
-
 				newsg.IpPermissionsEgress = append(newsg.IpPermissionsEgress, newperm)
-
 			} else {
 
 				updatesg := s.popsg(dst)
@@ -138,7 +133,7 @@ func (s *syncGroup) willbeAddedEgress() []*ec2.SecurityGroup {
 
 func (s *syncGroup) willbeDeleteIngress() []*ec2.SecurityGroup {
 
-	willbeDeletedIngress := []*ec2.SecurityGroup{}
+	willbeDeleteIngress := []*ec2.SecurityGroup{}
 
 	for _, dst := range s.destinations {
 
@@ -150,16 +145,13 @@ func (s *syncGroup) willbeDeleteIngress() []*ec2.SecurityGroup {
 			exists, srcpermission := s.isPermissionExists(dstpermission, s.source.IpPermissions)
 
 			if !exists {
-
 				newperm.SetIpRanges(dstpermission.IpRanges)
 				newperm.SetIpv6Ranges(dstpermission.Ipv6Ranges)
-
 			} else {
 
 				for _, dstrange := range dstpermission.IpRanges {
 
 					rangexists, _ := s.isIpRangeExists(dstrange, srcpermission.IpRanges)
-
 					if !rangexists {
 						newperm.IpRanges = append(newperm.IpRanges, dstrange)
 					}
@@ -168,7 +160,6 @@ func (s *syncGroup) willbeDeleteIngress() []*ec2.SecurityGroup {
 				for _, dstrange := range dstpermission.Ipv6Ranges {
 
 					rangexists, _ := s.isIpv6RangeExists(dstrange, srcpermission.Ipv6Ranges)
-
 					if !rangexists {
 						newperm.Ipv6Ranges = append(newperm.Ipv6Ranges, dstrange)
 					}
@@ -181,19 +172,65 @@ func (s *syncGroup) willbeDeleteIngress() []*ec2.SecurityGroup {
 		}
 
 		if len(newsg.IpPermissions) > 0 {
-			willbeDeletedIngress = append(willbeDeletedIngress, newsg)
+			willbeDeleteIngress = append(willbeDeleteIngress, newsg)
 		}
 	}
 
-	return willbeDeletedIngress
+	return willbeDeleteIngress
+}
+
+func (s *syncGroup) willbeDeleteEgress() []*ec2.SecurityGroup {
+
+	willbeDeleteEgress := []*ec2.SecurityGroup{}
+
+	for _, dst := range s.destinations {
+
+		newsg := s.popsg(dst)
+
+		for _, dstpermission := range dst.IpPermissionsEgress {
+
+			newperm := s.popperm(dstpermission)
+			exists, srcpermission := s.isPermissionExists(dstpermission, s.source.IpPermissionsEgress)
+
+			if !exists {
+				newperm.SetIpRanges(dstpermission.IpRanges)
+				newperm.SetIpv6Ranges(dstpermission.Ipv6Ranges)
+			} else {
+
+				for _, dstrange := range dstpermission.IpRanges {
+
+					rangexists, _ := s.isIpRangeExists(dstrange, srcpermission.IpRanges)
+					if !rangexists {
+						newperm.IpRanges = append(newperm.IpRanges, dstrange)
+					}
+				}
+
+				for _, dstrange := range dstpermission.Ipv6Ranges {
+
+					rangexists, _ := s.isIpv6RangeExists(dstrange, srcpermission.Ipv6Ranges)
+					if !rangexists {
+						newperm.Ipv6Ranges = append(newperm.Ipv6Ranges, dstrange)
+					}
+				}
+			}
+
+			if len(newperm.IpRanges) > 0 || len(newperm.Ipv6Ranges) > 0 {
+				newsg.IpPermissionsEgress = append(newsg.IpPermissionsEgress, newperm)
+			}
+		}
+
+		if len(newsg.IpPermissionsEgress) > 0 {
+			willbeDeleteEgress = append(willbeDeleteEgress, newsg)
+		}
+	}
+
+	return willbeDeleteEgress
 }
 
 func (s *syncGroup) isPermissionExists(src *ec2.IpPermission, destinations []*ec2.IpPermission) (bool, *ec2.IpPermission) {
 
 	for _, dst := range destinations {
-
 		if dst.FromPort != nil && dst.ToPort != nil && src.FromPort != nil && src.ToPort != nil {
-
 			if *src.FromPort == *dst.FromPort && *src.ToPort == *dst.ToPort && *src.IpProtocol == *dst.IpProtocol {
 				return true, dst
 			}

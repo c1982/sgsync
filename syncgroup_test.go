@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -78,6 +77,18 @@ var destinations = []*ec2.SecurityGroup{
 				},
 			}),
 		},
+		IpPermissionsEgress: []*ec2.IpPermission{
+			(&ec2.IpPermission{
+				FromPort:   aws.Int64(53),
+				ToPort:     aws.Int64(53),
+				IpProtocol: aws.String("udp"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("8.8.8.8/32"),
+					}),
+				},
+			}),
+		},
 	}),
 	(&ec2.SecurityGroup{
 		Description: aws.String("destination 3"),
@@ -125,6 +136,16 @@ var destinations = []*ec2.SecurityGroup{
 					}),
 				},
 			}),
+			(&ec2.IpPermission{
+				FromPort:   aws.Int64(443),
+				ToPort:     aws.Int64(443),
+				IpProtocol: aws.String("tcp"),
+				IpRanges: []*ec2.IpRange{
+					(&ec2.IpRange{
+						CidrIp: aws.String("0.0.0.0/0"),
+					}),
+				},
+			}),
 		},
 	}),
 }
@@ -151,36 +172,39 @@ var dstengress = []*ec2.SecurityGroup{
 
 func Test_WillbeAddedIngress(t *testing.T) {
 
-	s := NewSync(sourceGroup[0], destinations)
+	s := NewSyncGroup(sourceGroup[0], destinations)
 	ingress := s.willbeAddedIngress()
 
 	if len(ingress) != 2 {
 		t.Errorf("ingress rules cannot prepare. got: %d, want: %d", len(ingress), 2)
 	}
-
-	fmt.Printf("%v", ingress)
 }
 
 func Test_WillbeAddedEgress(t *testing.T) {
 
-	s := NewSync(sourceGroup[0], dstengress)
+	s := NewSyncGroup(sourceGroup[0], dstengress)
 	egress := s.willbeAddedEgress()
 
 	if len(egress) != 1 {
 		t.Errorf("egress value not expected got: %d, want: %d", len(egress), 1)
 	}
-
-	fmt.Printf("%v", egress)
 }
 
 func Test_WillBeDeleteIngress(t *testing.T) {
 
-	s := NewSync(sourceGroup[0], destinations)
+	s := NewSyncGroup(sourceGroup[0], destinations)
 	deleteds := s.willbeDeleteIngress()
 
-	if len(deleteds) > 0 {
-		t.Errorf("deleted value not expected got: %d, want: %d", len(deleteds), 1)
+	if len(deleteds) != 3 {
+		t.Errorf("deleted ingress value not expected got: %d, want: %d", len(deleteds), 3)
 	}
+}
 
-	fmt.Printf("%v", deleteds)
+func Test_WillBeDeleteEgress(t *testing.T) {
+	s := NewSyncGroup(sourceGroup[0], destinations)
+	deleteds := s.willbeDeleteEgress()
+
+	if len(deleteds) != 2 {
+		t.Errorf("deleted egress value not expected got: %d, want: %d", len(deleteds), 2)
+	}
 }
