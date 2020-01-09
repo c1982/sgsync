@@ -1,9 +1,39 @@
-# sgsync
+# AWS Security Group Synchronization Tool
 
-PS: working on progress...
+Of course, you can easily do these things using AWC's VPC Peering feature. This is the best practice. This tool includes a complete dirty-hack.
 
-Sample Config (config.yaml):
+This tool monitors the resource AWS Security Group that you specify and synchronizes it to multiple Security Groups that you specify. It applies both inbound and outbound rules to target security groups.
 
+### Download
+
+* [https://github.com/c1982/sgsync/releases](https://github.com/c1982/sgsync/releases)
+
+### Installation
+
+* copy sgsync binary file to /usr/local/bin/sgsync
+* create config file to /etc/sgsync/config.yaml
+* create service file to /etc/systemd/system/sgsync.service
+
+sgsync.service:
+```ini
+[Unit]
+Description=SGSYNC sevice
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=/usr/local/bin/sgsync --config=/etc/sgsync/config.yaml
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Configuration
+
+config.yaml:
 
 ```yaml
 interval: 5m
@@ -27,6 +57,10 @@ destinations:
     group_ids: ["sg-00000000000000004"]
 ```
 
+
+# AWS Policy
+
+AWS kullanıcısına tanımlayabileceğiniz inline policy aşağıdaki gibidir.
 
 AWS IAM Policy:
 
@@ -54,3 +88,8 @@ AWS IAM Policy:
     ]
 }
 ```
+
+
+## Contact
+
+Oğuzhan - [@c1982](https://twitter.com/c1982) - aspsrc@gmail.com
