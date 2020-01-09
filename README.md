@@ -1,6 +1,6 @@
 # AWS Security Group Synchronization Tool
 
-Of course, you can easily do these things using AWC's VPC Peering feature. This is the best practice. This tool includes a complete dirty-hack.
+Of course, you can easily do these things using AWS's VPC Peering feature. This is the best practice. This tool includes a complete dirty-hack.
 
 This tool monitors the resource AWS Security Group that you specify and synchronizes it to multiple Security Groups that you specify. It applies both inbound and outbound rules to target security groups.
 
@@ -17,7 +17,7 @@ This tool monitors the resource AWS Security Group that you specify and synchron
 sgsync.service:
 ```ini
 [Unit]
-Description=SGSYNC sevice
+Description=SGSYNC service
 After=network.target
 StartLimitIntervalSec=0
 
