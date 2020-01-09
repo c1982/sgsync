@@ -59,8 +59,6 @@ destinations:
 
 ### AWS Policy
 
-AWS kullanıcısına tanımlayabileceğiniz inline policy aşağıdaki gibidir.
-
 AWS IAM Policy:
 
 ```json
