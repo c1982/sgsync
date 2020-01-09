@@ -57,8 +57,7 @@ destinations:
     group_ids: ["sg-00000000000000004"]
 ```
 
-
-# AWS Policy
+### AWS Policy
 
 AWS kullanıcısına tanımlayabileceğiniz inline policy aşağıdaki gibidir.
 
@@ -89,7 +88,6 @@ AWS IAM Policy:
 }
 ```
 
-
-## Contact
+### Contact
 
 Oğuzhan - [@c1982](https://twitter.com/c1982) - aspsrc@gmail.com

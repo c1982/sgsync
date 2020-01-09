@@ -6,6 +6,6 @@
 *.test
 *.out
 vendor/
-sgsync
+sgsync*
 .vscode
 config_prod.yaml
